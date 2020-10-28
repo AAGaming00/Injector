@@ -8,6 +8,7 @@ export default {
   frame: document.createElement('object'),
 
   init: async () => {
+    if (window.goosemod_noCSPFetch) return
     goosemodScope.cspBypasser.frame.data = location.origin;
     document.body.appendChild(goosemodScope.cspBypasser.frame);
 
@@ -63,9 +64,14 @@ export default {
     goosemodScope.cspBypasser.frame.contentDocument.head.appendChild(script);
   },
 
-  json: (url, useCORSProxy = true) => {
+
+  fetch: (url, type, useCORSProxy = true) => {
     return new Promise((res) => {
-      goosemodScope.cspBypasser.frame.contentWindow.postMessage({url, type: 'json', useCORSProxy});
+      if (window.goosemod_noCSPFetch) {
+        window.goosemod_noCSPFetch(url).then((e) => e[type]()).then((e) => res(e))
+        return
+      }
+      goosemodScope.cspBypasser.frame.contentWindow.postMessage({url, type: type, useCORSProxy});
 
       window.addEventListener('message', async (e) => {
         if (e.data.verify !== url) return;
@@ -75,29 +81,11 @@ export default {
     });
   },
 
-  text: (url, useCORSProxy = true) => {
-    return new Promise((res) => {
-      goosemodScope.cspBypasser.frame.contentWindow.postMessage({url, type: 'text', useCORSProxy});
+  json: (url, useCORSProxy = true) => goosemodScope.cspBypasser.fetch(url, 'json', useCORSProxy),
 
-      window.addEventListener('message', async (e) => {
-        if (e.data.verify !== url) return;
+  text: (url, useCORSProxy = true) => goosemodScope.cspBypasser.fetch(url, 'text', useCORSProxy),
 
-        res(e.data.data);
-      });
-    });
-  },
-
-  blob: (url, useCORSProxy = true) => {
-    return new Promise((res) => {
-      goosemodScope.cspBypasser.frame.contentWindow.postMessage({url, type: 'blob', useCORSProxy});
-
-      window.addEventListener('message', async (e) => {
-        if (e.data.verify !== url) return;
-
-        res(e.data.data);
-      });
-    });
-  },
+  blob: (url, useCORSProxy = true) => goosemodScope.cspBypasser.fetch(url, 'blob', useCORSProxy),
 
   image: (url, useCORSProxy = true) => {
     return new Promise((res) => {
